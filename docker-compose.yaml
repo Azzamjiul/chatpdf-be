@@ -1,0 +1,29 @@
+# Docker Compose for Postgres and Redis (non-default ports)
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: chatpdf_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: chatpdf_user
+      POSTGRES_PASSWORD: chatpdf_pass
+      POSTGRES_DB: chatpdf_db
+    ports:
+      - "55432:5432"  # Host:Container (non-default host port)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: chatpdf_redis
+    restart: always
+    ports:
+      - "16379:6379"  # Host:Container (non-default host port)
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
