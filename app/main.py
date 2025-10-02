@@ -1,9 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
+from starlette.templating import Jinja2Templates
 
 from app.core.settings import settings
+from app.router.auth_router import auth_router
 from app.router.example_router import example_router
+
+templates = Jinja2Templates(directory="app/templates")
+
 
 settings.logger.setup_logger()
 
@@ -23,11 +28,17 @@ app.add_middleware(
 )
 
 app.include_router(example_router)
+app.include_router(auth_router)
 
 if settings.app_settings.DEBUG:
     from fastapi.staticfiles import StaticFiles
 
     app.mount("/public", StaticFiles(directory="public"), name="public")
+
+
+@app.get("/", include_in_schema=False)
+def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/scalar", include_in_schema=False)
