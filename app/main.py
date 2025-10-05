@@ -1,22 +1,25 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.templating import Jinja2Templates
 
 from app.core.settings import settings
-from app.router.auth_router import auth_router
-from app.router.example_router import example_router
-
-templates = Jinja2Templates(directory="app/templates")
-
+from app.routes.auth_router import auth_router
 
 settings.logger.setup_logger()
 
+templates = Jinja2Templates(directory="app/templates")
 
 app = FastAPI(
     title=settings.app_settings.APP_NAME,
     version=settings.app_settings.VERSION,
     description=settings.app_settings.DESCRIPTION,
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.app_settings.JWT_SECRET,
 )
 
 app.add_middleware(
@@ -27,7 +30,6 @@ app.add_middleware(
     allow_headers=settings.app_settings.ALLOW_HEADERS,
 )
 
-app.include_router(example_router)
 app.include_router(auth_router)
 
 if settings.app_settings.DEBUG:

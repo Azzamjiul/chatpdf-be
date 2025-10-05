@@ -12,4 +12,6 @@ class AppSettings(BaseSettings):
     ALLOW_METHODS: list[str] = ["*"]
     ALLOW_HEADERS: list[str] = ["*"]
 
+    JWT_SECRET: str = "your-secret-key"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
