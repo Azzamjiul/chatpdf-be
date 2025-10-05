@@ -19,11 +19,15 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "users",
-        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
+        # Store id as a fixed-length string that matches the application's
+        # generated id (24 chars). The application will set the id before
+        # inserting so no autoincrement/sequence is needed.
+        sa.Column("id", sa.String(length=24), primary_key=True, nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default=sa.text("false")),
     )
 
 
