@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
+from sqlmodel import Session
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.templating import Jinja2Templates
 
 from app.core.settings import settings
+from app.database.engine import engine
 from app.routes.auth_router import auth_router
 
 settings.logger.setup_logger()
@@ -29,6 +31,19 @@ app.add_middleware(
     allow_methods=settings.app_settings.ALLOW_METHODS,
     allow_headers=settings.app_settings.ALLOW_HEADERS,
 )
+
+
+# Attach a DB session to each request via middleware so handlers can access
+# `request.state.db` and close the session after the response.
+@app.middleware("http")
+async def db_session_middleware(request: Request, call_next):
+    # Create a sync Session per request
+    with Session(engine) as session:
+        request.state.db = session
+        response = await call_next(request)
+        # session will be closed when exiting the context manager
+        return response
+
 
 app.include_router(auth_router)
 

@@ -10,3 +10,10 @@ oauth.register(
     client_kwargs={"scope": "openid email profile"},
     name="google",
 )
+
+
+async def authorize(request):
+    data = await oauth.google.authorize_access_token(request)
+    user = dict(data["userinfo"])
+
+    return user
