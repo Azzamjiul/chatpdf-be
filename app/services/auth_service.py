@@ -47,17 +47,60 @@ async def authorize(request: Request, db: Session) -> Optional[AuthResponse]:
 
     # generate jwt token here
     access_token = create_access_token(data={"sub": str(existing_user.id), "email": existing_user.email})
+    refresh_token = create_refresh_token(data={"sub": str(existing_user.id), "email": existing_user.email})
 
     return AuthResponse(
         name=existing_user.name,
         email=existing_user.email,
         access_token=access_token,
+        refresh_token=refresh_token,
     )
 
 
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=app_settings.JWT_TOKEN_EXPIRE)):
     to_encode = data.copy()
+    # mark this as an access token
+    to_encode.update({"token_type": "access"})
     expired_time = datetime.now() + expires_delta
     to_encode.update({"exp": expired_time})
-    encoded_jwt = jwt.encode(to_encode, app_settings.JWT_SECRET, algorithm="HS256")
+    encoded_jwt = jwt.encode(to_encode, app_settings.JWT_SECRET, algorithm=app_settings.JWT_ALGORITHM)
     return encoded_jwt
+
+
+def create_refresh_token(
+    data: dict, expires_delta: timedelta = timedelta(minutes=app_settings.JWT_REFRESH_TOKEN_EXPIRE)
+):
+    """Create a refresh token with a longer expiry.
+
+    This mirrors create_access_token but uses the refresh expiry setting.
+    """
+    to_encode = data.copy()
+    # mark this as a refresh token
+    to_encode.update({"token_type": "refresh"})
+    expired_time = datetime.now() + expires_delta
+    to_encode.update({"exp": expired_time})
+    encoded_jwt = jwt.encode(to_encode, app_settings.JWT_SECRET, algorithm=app_settings.JWT_ALGORITHM)
+    return encoded_jwt
+
+
+def verify_refresh_token(token: str) -> dict:
+    """Verify and decode a refresh token. Returns payload if valid, raises jwt exceptions otherwise."""
+    payload = jwt.decode(token, app_settings.JWT_SECRET, algorithms=[app_settings.JWT_ALGORITHM])
+    # ensure token type
+    if payload.get("token_type") != "refresh":
+        raise jwt.InvalidTokenError("Not a refresh token")
+    return payload
+
+
+def refresh_access_token(refresh_token: str, rotate: bool = False) -> tuple[str, str | None]:
+    """Given a refresh token, validate it and return (access_token, refresh_token_or_none).
+
+    If rotate is True, return a new refresh token as well. Otherwise return None for refresh token.
+    """
+    payload = verify_refresh_token(refresh_token)
+    user_data = {"sub": payload.get("sub"), "email": payload.get("email")}
+    new_access = create_access_token(data=user_data)
+    new_refresh = None
+    if rotate:
+        new_refresh = create_refresh_token(data=user_data)
+    return new_access, new_refresh

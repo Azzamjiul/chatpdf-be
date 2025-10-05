@@ -14,5 +14,9 @@ class AppSettings(BaseSettings):
 
     JWT_SECRET: str = "your-secret-key"
     JWT_TOKEN_EXPIRE: int = 60
+    # Refresh token expiry in minutes (default 7 days)
+    JWT_REFRESH_TOKEN_EXPIRE: int = 60 * 24 * 7
+    # Algorithm used to sign JWTs
+    JWT_ALGORITHM: str = "HS256"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
