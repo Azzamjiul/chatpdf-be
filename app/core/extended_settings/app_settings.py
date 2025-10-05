@@ -13,5 +13,6 @@ class AppSettings(BaseSettings):
     ALLOW_HEADERS: list[str] = ["*"]
 
     JWT_SECRET: str = "your-secret-key"
+    JWT_TOKEN_EXPIRE: int = 60
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

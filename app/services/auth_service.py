@@ -1,11 +1,15 @@
+from datetime import datetime, timedelta
 from typing import Optional
 
+import jwt
 from authlib.integrations.starlette_client import OAuth
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
+from app.core.extended_settings import app_settings
 from app.core.settings import settings
 from app.database.models import User
+from app.schema.auth import AuthResponse
 
 oauth = OAuth()
 oauth.register(
@@ -17,7 +21,7 @@ oauth.register(
 )
 
 
-async def authorize(request: Request, db: Session) -> Optional[User]:
+async def authorize(request: Request, db: Session) -> Optional[AuthResponse]:
     """Handle Google OIDC authorization and create or return a User.
 
     Notes:
@@ -41,4 +45,19 @@ async def authorize(request: Request, db: Session) -> Optional[User]:
         db.refresh(new_user)
         existing_user = new_user
 
-    return existing_user
+    # generate jwt token here
+    access_token = create_access_token(data={"sub": str(existing_user.id), "email": existing_user.email})
+
+    return AuthResponse(
+        name=existing_user.name,
+        email=existing_user.email,
+        access_token=access_token,
+    )
+
+
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=app_settings.JWT_TOKEN_EXPIRE)):
+    to_encode = data.copy()
+    expired_time = datetime.now() + expires_delta
+    to_encode.update({"exp": expired_time})
+    encoded_jwt = jwt.encode(to_encode, app_settings.JWT_SECRET, algorithm="HS256")
+    return encoded_jwt
